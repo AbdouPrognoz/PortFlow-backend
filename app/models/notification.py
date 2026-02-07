@@ -2,11 +2,12 @@ from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, Foreign
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 
-class NotificationType(Enum):
+class NotificationType(str, enum.Enum):
     BOOKING_CONFIRMED = "BOOKING_CONFIRMED"
     QR_READY = "QR_READY"
     GENERIC = "GENERIC"

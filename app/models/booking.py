@@ -2,11 +2,12 @@ from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, Time, E
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 
-class BookingStatus(Enum):
+class BookingStatus(str, enum.Enum):
     PENDING = "PENDING"
     CONFIRMED = "CONFIRMED"
     REJECTED = "REJECTED"

@@ -1,20 +1,21 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, Float, Enum, ForeignKey, UUID, Text
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Date, Float, Enum, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 from .user import UserRole
 
 
-class CarrierStatus(Enum):
+class CarrierStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     SUSPENDED = "SUSPENDED"
 
 
-class DriverStatus(Enum):
+class DriverStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
     SUSPENDED = "SUSPENDED"
 
@@ -54,7 +55,6 @@ class CarrierProfile(Base):
 
     # Relationships
     user = relationship("User", back_populates="carrier_profile")
-    drivers = relationship("DriverProfile", back_populates="carrier_user")
 
 
 class DriverProfile(Base):
@@ -75,5 +75,5 @@ class DriverProfile(Base):
     updated_at = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
-    user = relationship("User", back_populates="driver_profile")
-    carrier_user = relationship("User", foreign_keys=[carrier_user_id], back_populates="drivers")
+    user = relationship("User", foreign_keys=[user_id], back_populates="driver_profile")
+    carrier_user = relationship("User", foreign_keys=[carrier_user_id], back_populates="carrier_drivers")

@@ -1,12 +1,13 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, UUID
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 
-class UserRole(Enum):
+class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
     OPERATOR = "OPERATOR"
     CARRIER = "CARRIER"
@@ -27,7 +28,8 @@ class User(Base):
     # Relationships
     operator_profile = relationship("OperatorProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     carrier_profile = relationship("CarrierProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    driver_profile = relationship("DriverProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    driver_profile = relationship("DriverProfile", foreign_keys="DriverProfile.user_id", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    carrier_drivers = relationship("DriverProfile", foreign_keys="DriverProfile.carrier_user_id", back_populates="carrier_user")
     bookings_as_carrier = relationship("Booking", foreign_keys='Booking.carrier_user_id', back_populates="carrier_user")
     bookings_as_driver = relationship("Booking", foreign_keys='Booking.driver_user_id', back_populates="driver_user")
     bookings_decided_by = relationship("Booking", foreign_keys='Booking.decided_by_operator_user_id', back_populates="decided_by_operator")

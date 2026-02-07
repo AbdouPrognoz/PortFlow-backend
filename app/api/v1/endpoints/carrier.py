@@ -4,7 +4,7 @@ from datetime import datetime, date
 from ....core.database import get_sync_db
 from ....models.user import User, UserRole
 from ....models.booking import Booking, BookingStatus
-from ....models.driver import DriverProfile
+from ....models.profile import DriverProfile
 from ....schemas.booking import BookingResponse, BookingCreate
 from ....schemas.driver import DriverProfileResponse
 from ....api.deps import get_current_user, require_role

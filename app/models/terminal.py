@@ -2,11 +2,12 @@ from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, Float
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 
-class TerminalStatus(Enum):
+class TerminalStatus(str, enum.Enum):
     ACTIVE = "ACTIVE"
     SUSPENDED = "SUSPENDED"
 

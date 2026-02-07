@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
+from enum import Enum
 from .common import ResponseBase
 
 
