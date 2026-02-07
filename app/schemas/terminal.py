@@ -1,7 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, field_serializer
+from typing import Optional, Any
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 from .common import ResponseBase
 
 
@@ -32,13 +33,17 @@ class TerminalUpdate(BaseModel):
 
 
 class TerminalResponse(TerminalBase):
-    id: str
+    id: Any  # UUID or str
     status: TerminalStatusEnum
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+    
+    @field_serializer('id')
+    def serialize_id(self, id: Any) -> str:
+        return str(id) if id else None
 
 
 class TerminalListResponse(ResponseBase):

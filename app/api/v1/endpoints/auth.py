@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, date
+from uuid import UUID
 from ....core.database import get_sync_db
 from ....core.security import verify_password, get_password_hash, create_access_token
 from ....models.user import User, UserRole
-from ....models.profile import OperatorProfile, CarrierProfile, DriverProfile
+from ....models.profile import OperatorProfile, CarrierProfile, DriverProfile, CarrierStatus, DriverStatus
 from ....schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from ....schemas.user import UserCreate
 from ....api.deps import get_current_user
@@ -108,58 +109,92 @@ async def register(
             detail="Email already registered"
         )
     
-    # Hash the password
-    hashed_password = get_password_hash(register_data.password)
+    # Parse birth_date if provided
+    parsed_birth_date = None
+    if register_data.birth_date:
+        try:
+            parsed_birth_date = date.fromisoformat(register_data.birth_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid birth_date format. Use YYYY-MM-DD"
+            )
     
-    # Create the user
-    user = User(
-        email=register_data.email,
-        password_hash=hashed_password,
-        role=UserRole(register_data.role),
-        is_active=True
-    )
-    
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Create profile based on role
-    if user.role == UserRole.CARRIER:
-        profile = CarrierProfile(
-            user_id=user.id,
-            first_name=register_data.first_name,
-            last_name=register_data.last_name,
-            phone=register_data.phone,
-            gender=register_data.gender,
-            birth_date=register_data.birth_date,
-            company_name=register_data.company_name,
-            status="PENDING"  # Default status for new carriers
+    try:
+        # Hash the password
+        hashed_password = get_password_hash(register_data.password)
+        
+        # Create the user
+        user = User(
+            email=register_data.email,
+            password_hash=hashed_password,
+            role=UserRole(register_data.role),
+            is_active=True
         )
-        db.add(profile)
+        
+        db.add(user)
+        db.flush()  # Get user.id without committing
+        
+        # Create profile based on role
+        if user.role == UserRole.CARRIER:
+            profile = CarrierProfile(
+                user_id=user.id,
+                first_name=register_data.first_name,
+                last_name=register_data.last_name,
+                phone=register_data.phone,
+                gender=register_data.gender,
+                birth_date=parsed_birth_date,
+                company_name=register_data.company_name,
+                status=CarrierStatus.PENDING
+            )
+            db.add(profile)
+        elif user.role == UserRole.OPERATOR:
+            profile = OperatorProfile(
+                user_id=user.id,
+                first_name=register_data.first_name,
+                last_name=register_data.last_name,
+                phone=register_data.phone,
+                gender=register_data.gender,
+                birth_date=parsed_birth_date
+            )
+            db.add(profile)
+        elif user.role == UserRole.DRIVER:
+            if not register_data.carrier_user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="carrier_user_id is required for driver registration"
+                )
+            try:
+                carrier_uuid = UUID(register_data.carrier_user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid carrier_user_id format"
+                )
+            profile = DriverProfile(
+                user_id=user.id,
+                carrier_user_id=carrier_uuid,
+                first_name=register_data.first_name,
+                last_name=register_data.last_name,
+                phone=register_data.phone,
+                gender=register_data.gender,
+                birth_date=parsed_birth_date,
+                status=DriverStatus.ACTIVE
+            )
+            db.add(profile)
+        
         db.commit()
-    elif user.role == UserRole.OPERATOR:
-        profile = OperatorProfile(
-            user_id=user.id,
-            first_name=register_data.first_name,
-            last_name=register_data.last_name,
-            phone=register_data.phone,
-            gender=register_data.gender,
-            birth_date=register_data.birth_date
+        db.refresh(user)
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
         )
-        db.add(profile)
-        db.commit()
-    elif user.role == UserRole.DRIVER:
-        profile = DriverProfile(
-            user_id=user.id,
-            carrier_user_id=register_data.carrier_user_id,  # Assuming carrier_user_id is provided
-            first_name=register_data.first_name,
-            last_name=register_data.last_name,
-            phone=register_data.phone,
-            gender=register_data.gender,
-            birth_date=register_data.birth_date
-        )
-        db.add(profile)
-        db.commit()
     
     # Create access token
     access_token_expires = timedelta(minutes=30)
@@ -174,7 +209,7 @@ async def register(
         "is_active": user.is_active,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
-        "profile": None  # Profile will be added separately if needed
+        "profile": None
     }
     
     return TokenResponse(

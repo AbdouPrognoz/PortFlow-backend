@@ -438,3 +438,38 @@ async def get_all_bookings(
         message="Bookings retrieved successfully",
         data=booking_responses
     )
+
+
+@router.post("/operators/{operator_id}/assign-terminal", response_model=dict)
+async def assign_operator_to_terminal(
+    operator_id: str,
+    terminal_id: str,
+    current_user: User = Depends(require_role(["ADMIN"])),
+    db: Session = Depends(get_sync_db)
+):
+    """Assign an operator to a terminal"""
+    # Check if operator exists
+    operator = db.query(User).filter(User.id == operator_id, User.role == UserRole.OPERATOR).first()
+    if not operator:
+        raise HTTPException(status_code=404, detail="Operator not found")
+    
+    # Check if terminal exists
+    terminal = db.query(Terminal).filter(Terminal.id == terminal_id).first()
+    if not terminal:
+        raise HTTPException(status_code=404, detail="Terminal not found")
+    
+    # Get or create operator profile
+    operator_profile = db.query(OperatorProfile).filter(OperatorProfile.user_id == operator_id).first()
+    if not operator_profile:
+        raise HTTPException(status_code=404, detail="Operator profile not found. Please complete operator registration first.")
+    
+    # Assign terminal
+    operator_profile.terminal_id = terminal_id
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Operator assigned to terminal {terminal.name}",
+        "operator_id": operator_id,
+        "terminal_id": terminal_id
+    }

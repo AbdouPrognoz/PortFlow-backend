@@ -25,8 +25,9 @@ class RegisterRequest(BaseModel):
     last_name: str
     phone: Optional[str] = None
     gender: Optional[str] = None
-    birth_date: Optional[str] = None  # ISO format date string
+    birth_date: Optional[str] = None  # ISO format date string (YYYY-MM-DD)
     company_name: Optional[str] = None  # For carriers only
+    carrier_user_id: Optional[str] = None  # For drivers only - UUID of the carrier
 
 
 class TokenResponse(BaseModel):

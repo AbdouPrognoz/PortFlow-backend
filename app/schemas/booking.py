@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, field_serializer
+from typing import Optional, Any
 from datetime import datetime, date, time
 from enum import Enum
 from .common import ResponseBase
@@ -36,17 +36,26 @@ class BookingUpdate(BaseModel):
     decided_by_operator_user_id: Optional[str] = None
 
 
-class BookingResponse(BookingBase):
-    id: str
-    driver_user_id: Optional[str] = None
+class BookingResponse(BaseModel):
+    id: Any
+    carrier_user_id: Any
+    terminal_id: Any
+    date: date
+    start_time: time
+    end_time: time
+    driver_user_id: Optional[Any] = None
     status: BookingStatusEnum
-    decided_by_operator_user_id: Optional[str] = None
+    decided_by_operator_user_id: Optional[Any] = None
     qr_payload: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+    
+    @field_serializer('id', 'carrier_user_id', 'terminal_id', 'driver_user_id', 'decided_by_operator_user_id')
+    def serialize_uuid(self, value: Any) -> Optional[str]:
+        return str(value) if value else None
 
 
 class BookingListResponse(ResponseBase):
