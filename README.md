@@ -2,6 +2,8 @@
 
 A professional, high-performance FastAPI backend designed to streamline port terminal logistics. This system manages complex booking workflows, user role-based permissions, and terminal operations with real-time updates and robust data validation.
 
+(Note the whole app is running with the frontend integration and ai agents , repo is in an organization (hackathon project))
+
 ## 🚀 Overview
 
 The Port Terminal Management System provides a centralized platform for:
